@@ -11,6 +11,8 @@ namespace FluidTYPO3\Vhs\Service;
 use FluidTYPO3\Vhs\Asset;
 use FluidTYPO3\Vhs\Utility\CoreUtility;
 use FluidTYPO3\Vhs\ViewHelpers\Asset\AssetInterface;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -28,8 +30,9 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\TagBuilder;
  * Inject this Service in your class to access VHS Asset
  * features - include assets etc.
  */
-class AssetService implements SingletonInterface
+class AssetService implements SingletonInterface, LoggerAwareInterface
 {
+    use LoggerAwareTrait;
 
     /**
      * @var string
@@ -640,16 +643,15 @@ class AssetService implements SingletonInterface
                 $newPath = basename($path);
                 $extension = pathinfo($newPath, PATHINFO_EXTENSION);
                 $temporaryFileName = 'vhs-assets-css-' . $checksum . '.' . $extension;
-                $temporaryFile = constant('PATH_site') . $this->getTempPath() . $temporaryFileName;
+                $temporaryFile = CoreUtility::getSitePath() . $this->getTempPath() . $temporaryFileName;
                 $rawPath = GeneralUtility::getFileAbsFileName(
                     $originalDirectory . (empty($originalDirectory) ? '' : '/')
                 ) . $path;
                 $realPath = realpath($rawPath);
                 if (false === $realPath) {
-                    GeneralUtility::sysLog(
+                    $this->logger->warning(
                         'Asset at path "' . $rawPath . '" not found. Processing skipped.',
-                        'vhs',
-                        GeneralUtility::SYSLOG_SEVERITY_WARNING
+                        ['rawPath' => $rawPath]
                     );
                 } else {
                     if (false === file_exists($temporaryFile)) {
